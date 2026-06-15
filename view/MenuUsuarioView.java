@@ -1,138 +1,86 @@
 package view;
 
-import dao.AgendamentoDAO;
-import model.Agendamento;
-import model.Usuario;
+import dao.*;
+import model.*;
+import exception.*;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ArrayList;
 
 public class MenuUsuarioView extends JFrame {
     private Usuario usuario;
     private JTabbedPane tabbedPane;
-    private JTextField barbeiroField, dataHoraField;
-    private JTable agendamentosTable;
-    private DefaultTableModel tableModel;
+    private JTable horariosTable, agendamentosTable;
+    private DefaultTableModel horariosModel, agendamentosModel;
+    private JComboBox<String> barbeiroCombo;
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private List<HorarioDisponivel> horariosDisponiveisCache = new ArrayList<>();
     
     public MenuUsuarioView(Usuario usuario) {
         this.usuario = usuario;
         setTitle("Sistema de Barbearia - " + usuario.getNome());
-        setSize(700, 550);
+        setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
-        // Criar abas
         tabbedPane = new JTabbedPane();
         tabbedPane.addTab("✂️ Agendar Horário", criarAbaAgendar());
         tabbedPane.addTab("📅 Meus Agendamentos", criarAbaAgendamentos());
         tabbedPane.addTab("👤 Meu Perfil", criarAbaPerfil());
         
         add(tabbedPane);
-        setVisible(true);
-        
-        // Carregar agendamentos ao iniciar
+        carregarBarbeiros();
         carregarAgendamentos();
+        setVisible(true);
     }
     
     private JPanel criarAbaAgendar() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(new Color(236, 240, 241));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(15, 15, 15, 15);
+        JPanel panel = new JPanel(new BorderLayout());
         
-        // Título
-        JLabel titleLabel = new JLabel("AGENDAR HORÁRIO");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        titleLabel.setForeground(new Color(44, 62, 80));
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(titleLabel, gbc);
+        JPanel topPanel = new JPanel();
+        topPanel.add(new JLabel("Selecione o Barbeiro:"));
+        barbeiroCombo = new JComboBox<>();
+        barbeiroCombo.addActionListener(e -> carregarHorarios());
+        topPanel.add(barbeiroCombo);
         
-        // Barbeiro
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        JLabel barbeiroLabel = new JLabel("Nome do Barbeiro:");
-        barbeiroLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        panel.add(barbeiroLabel, gbc);
+        String[] colunas = {"Horário Disponível"};
+        horariosModel = new DefaultTableModel(colunas, 0);
+        horariosTable = new JTable(horariosModel);
+        JScrollPane scrollPane = new JScrollPane(horariosTable);
         
-        barbeiroField = new JTextField(20);
-        gbc.gridx = 1;
-        panel.add(barbeiroField, gbc);
-        
-        // Data/Hora
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        JLabel dataLabel = new JLabel("Data e Hora (dd/MM/yyyy HH:mm):");
-        dataLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        panel.add(dataLabel, gbc);
-        
-        dataHoraField = new JTextField(20);
-        gbc.gridx = 1;
-        panel.add(dataHoraField, gbc);
-        
-        // Botão Agendar
-        JButton agendarButton = new JButton("AGENDAR");
+        JButton agendarButton = new JButton("Agendar Horário Selecionado");
         agendarButton.setBackground(new Color(46, 204, 113));
         agendarButton.setForeground(Color.WHITE);
         agendarButton.setFont(new Font("Arial", Font.BOLD, 14));
-        agendarButton.setFocusPainted(false);
-        agendarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        panel.add(agendarButton, gbc);
-        
-        // Informação
-        JLabel infoLabel = new JLabel("💡 Exemplo: 25/12/2024 14:30");
-        infoLabel.setFont(new Font("Arial", Font.ITALIC, 11));
-        infoLabel.setForeground(Color.GRAY);
-        gbc.gridy = 4;
-        panel.add(infoLabel, gbc);
-        
-        // Ação do botão
         agendarButton.addActionListener(e -> agendarHorario());
+        
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(agendarButton, BorderLayout.SOUTH);
         
         return panel;
     }
     
     private JPanel criarAbaAgendamentos() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
         
-        // Tabela de agendamentos
-        String[] colunas = {"Barbeiro", "Data e Hora"};
-        tableModel = new DefaultTableModel(colunas, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        
-        agendamentosTable = new JTable(tableModel);
-        agendamentosTable.setFont(new Font("Arial", Font.PLAIN, 12));
-        agendamentosTable.setRowHeight(25);
-        agendamentosTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
-        
+        String[] colunas = {"Barbeiro", "Data/Hora", "Status"};
+        agendamentosModel = new DefaultTableModel(colunas, 0);
+        agendamentosTable = new JTable(agendamentosModel);
         JScrollPane scrollPane = new JScrollPane(agendamentosTable);
+        
+        JButton cancelarButton = new JButton("Cancelar Agendamento Selecionado");
+        cancelarButton.setBackground(new Color(231, 76, 60));
+        cancelarButton.setForeground(Color.WHITE);
+        cancelarButton.addActionListener(e -> cancelarAgendamento());
+        
         panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Botão Atualizar
-        JButton atualizarButton = new JButton("🔄 Atualizar Lista");
-        atualizarButton.setBackground(new Color(52, 152, 219));
-        atualizarButton.setForeground(Color.WHITE);
-        atualizarButton.setFocusPainted(false);
-        atualizarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        atualizarButton.addActionListener(e -> carregarAgendamentos());
-        
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(atualizarButton);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
+        panel.add(cancelarButton, BorderLayout.SOUTH);
         
         return panel;
     }
@@ -141,109 +89,162 @@ public class MenuUsuarioView extends JFrame {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(new Color(236, 240, 241));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(15, 15, 15, 15);
+        gbc.insets = new Insets(10, 10, 10, 10);
         
-        // Título
         JLabel titleLabel = new JLabel("MEU PERFIL");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        titleLabel.setForeground(new Color(44, 62, 80));
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
         panel.add(titleLabel, gbc);
         
-        // Usuário
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        JLabel userLabel = new JLabel("Usuário:");
-        userLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        panel.add(userLabel, gbc);
+        String[][] info = {
+            {"Nome:", usuario.getNome()},
+            {"CPF:", usuario.getCpf()},
+            {"CEP:", usuario.getCep()},
+            {"Email:", usuario.getEmail()},
+            {"Telefone:", usuario.getTelefone()},
+            {"Senha:", usuario.getSenha()}
+        };
         
-        JLabel userValueLabel = new JLabel(usuario.getNome());
-        userValueLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        gbc.gridx = 1;
-        panel.add(userValueLabel, gbc);
+        for (int i = 0; i < info.length; i++) {
+            gbc.gridy = i + 1;
+            gbc.gridwidth = 1;
+            gbc.gridx = 0;
+            JLabel label = new JLabel(info[i][0]);
+            label.setFont(new Font("Arial", Font.BOLD, 14));
+            panel.add(label, gbc);
+            
+            gbc.gridx = 1;
+            panel.add(new JLabel(info[i][1]), gbc);
+        }
         
-        // Senha
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        JLabel passLabel = new JLabel("Senha:");
-        passLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        panel.add(passLabel, gbc);
-        
-        JLabel passValueLabel = new JLabel(usuario.getSenha());
-        passValueLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        gbc.gridx = 1;
-        panel.add(passValueLabel, gbc);
-        
-        // Botão Sair
         JButton sairButton = new JButton("SAIR DO SISTEMA");
         sairButton.setBackground(new Color(231, 76, 60));
         sairButton.setForeground(Color.WHITE);
-        sairButton.setFont(new Font("Arial", Font.BOLD, 14));
-        sairButton.setFocusPainted(false);
-        sairButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = info.length + 1;
         gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(sairButton, gbc);
         
         sairButton.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "Deseja realmente sair?", "Confirmar", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                new LoginView();
-                dispose();
-            }
+            new LoginView();
+            dispose();
         });
         
         return panel;
     }
     
-    private void agendarHorario() {
-        String barbeiro = barbeiroField.getText().trim();
-        String dataHora = dataHoraField.getText().trim();
-        
-        if (barbeiro.isEmpty() || dataHora.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Preencha todos os campos!", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
+    private void carregarBarbeiros() {
+        barbeiroCombo.removeAllItems();
+        try {
+            for (Pessoa p : PessoaDAO.listarTodos()) {
+                if (p.getTipo().equals("BARBEIRO")) {
+                    barbeiroCombo.addItem(p.getNome());
+                }
+            }
+            if (barbeiroCombo.getItemCount() > 0) {
+                carregarHorarios();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar barbeiros: " + e.getMessage());
         }
+    }
+    
+    private void carregarHorarios() {
+        horariosModel.setRowCount(0);
+        horariosDisponiveisCache.clear();
+        
+        String barbeiroSelecionado = (String) barbeiroCombo.getSelectedItem();
+        if (barbeiroSelecionado == null) return;
         
         try {
-            boolean disponivel = AgendamentoDAO.horarioDisponivel(barbeiro, dataHora);
-            if (!disponivel) {
-                JOptionPane.showMessageDialog(this, "❌ Horário já ocupado para este barbeiro!", "Indisponível", JOptionPane.WARNING_MESSAGE);
-                return;
+            List<HorarioDisponivel> horarios = HorarioDAO.buscarPorBarbeiro(barbeiroSelecionado);
+            for (HorarioDisponivel h : horarios) {
+                horariosModel.addRow(new Object[]{h.getHorarioFormatado()});
+                horariosDisponiveisCache.add(h);
             }
-            
-            Agendamento novo = new Agendamento(usuario.getNome(), barbeiro, dataHora);
-            AgendamentoDAO.salvar(novo);
-            
-            JOptionPane.showMessageDialog(this, "✅ Horário agendado com sucesso!");
-            barbeiroField.setText("");
-            dataHoraField.setText("");
-            carregarAgendamentos(); // Atualiza a lista automaticamente
-            
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Erro ao agendar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            if (horarios.isEmpty()) {
+                horariosModel.addRow(new Object[]{"Nenhum horário disponível para este barbeiro"});
+            }
+        } catch (CadastroException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar horários: " + e.getMessage());
         }
     }
     
     private void carregarAgendamentos() {
+        agendamentosModel.setRowCount(0);
         try {
             List<Agendamento> agendamentos = AgendamentoDAO.buscarPorUsuario(usuario.getNome());
-            tableModel.setRowCount(0);
-            
             for (Agendamento a : agendamentos) {
-                tableModel.addRow(new Object[]{a.getNomeBarbeiro(), a.getDataHora()});
+                agendamentosModel.addRow(new Object[]{
+                    a.getNomeBarbeiro(), 
+                    a.getDataHoraFormatada(), 
+                    a.getStatus()
+                });
             }
-            
             if (agendamentos.isEmpty()) {
-                tableModel.addRow(new Object[]{"Nenhum agendamento encontrado", ""});
+                agendamentosModel.addRow(new Object[]{"Nenhum agendamento encontrado", "", ""});
             }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Erro ao carregar agendamentos: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        } catch (AgendamentoException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar agendamentos: " + e.getMessage());
+        }
+    }
+    
+    private void agendarHorario() {
+        int selectedRow = horariosTable.getSelectedRow();
+        if (selectedRow < 0 || selectedRow >= horariosDisponiveisCache.size()) {
+            JOptionPane.showMessageDialog(this, "Selecione um horário na tabela!", "Atenção", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        HorarioDisponivel horario = horariosDisponiveisCache.get(selectedRow);
+        String barbeiroNome = (String) barbeiroCombo.getSelectedItem();
+        
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "Confirmar agendamento com " + barbeiroNome + "?\n" + horario.getHorarioFormatado(),
+            "Confirmar Agendamento", JOptionPane.YES_NO_OPTION);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                Agendamento novo = new Agendamento(usuario.getNome(), barbeiroNome, horario.getDataHoraInicio());
+                AgendamentoDAO.salvar(novo);
+                HorarioDAO.atualizarDisponibilidade(barbeiroNome, horario.getDataHoraInicio(), false);
+                
+                JOptionPane.showMessageDialog(this, "✅ Horário agendado com sucesso!");
+                carregarHorarios();
+                carregarAgendamentos();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Erro ao agendar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    private void cancelarAgendamento() {
+        int selectedRow = agendamentosTable.getSelectedRow();
+        if (selectedRow < 0) {
+            JOptionPane.showMessageDialog(this, "Selecione um agendamento na tabela!", "Atenção", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        String barbeiro = (String) agendamentosModel.getValueAt(selectedRow, 0);
+        String dataHoraStr = (String) agendamentosModel.getValueAt(selectedRow, 1);
+        
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "Cancelar agendamento com " + barbeiro + " em " + dataHoraStr + "?",
+            "Confirmar Cancelamento", JOptionPane.YES_NO_OPTION);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                LocalDateTime dataHora = LocalDateTime.parse(dataHoraStr, formatter);
+                AgendamentoDAO.cancelarAgendamento(usuario.getNome(), dataHora);
+                HorarioDAO.atualizarDisponibilidade(barbeiro, dataHora, true);
+                
+                JOptionPane.showMessageDialog(this, "✅ Agendamento cancelado!");
+                carregarHorarios();
+                carregarAgendamentos();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Erro ao cancelar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }

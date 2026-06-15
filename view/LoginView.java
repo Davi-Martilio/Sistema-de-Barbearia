@@ -1,13 +1,12 @@
 package view;
 
-import dao.UsuarioDAO;
+import dao.PessoaDAO;
+import model.Pessoa;
+import model.Barbeiro;
 import model.Usuario;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.IOException;
 
 public class LoginView extends JFrame {
     private JTextField usuarioField;
@@ -15,6 +14,7 @@ public class LoginView extends JFrame {
     private JButton entrarButton;
     private JLabel cadastrarLink;
 
+    // CONSTRUTOR: Configura a interface gráfica do login
     public LoginView() {
         setTitle("Sistema de Barbearia - Login");
         setSize(450, 500);
@@ -22,7 +22,6 @@ public class LoginView extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
         
-        // Painel principal com gradiente
         JPanel mainPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -39,7 +38,6 @@ public class LoginView extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         
-        // Título
         JLabel titleLabel = new JLabel("✂️ SISTEMA DE BARBEARIA ✂️");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
@@ -48,11 +46,9 @@ public class LoginView extends JFrame {
         gbc.gridwidth = 2;
         mainPanel.add(titleLabel, gbc);
         
-        // Espaçamento
         gbc.gridy = 1;
         mainPanel.add(Box.createVerticalStrut(30), gbc);
         
-        // Label Usuário
         JLabel userLabel = new JLabel("Usuário");
         userLabel.setFont(new Font("Arial", Font.BOLD, 14));
         userLabel.setForeground(Color.WHITE);
@@ -60,17 +56,11 @@ public class LoginView extends JFrame {
         gbc.gridwidth = 1;
         mainPanel.add(userLabel, gbc);
         
-        // Campo Usuário
         usuarioField = new JTextField(15);
         usuarioField.setFont(new Font("Arial", Font.PLAIN, 14));
-        usuarioField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(52, 73, 94)),
-            BorderFactory.createEmptyBorder(8, 8, 8, 8)
-        ));
         gbc.gridx = 1;
         mainPanel.add(usuarioField, gbc);
         
-        // Label Senha
         JLabel passLabel = new JLabel("Senha");
         passLabel.setFont(new Font("Arial", Font.BOLD, 14));
         passLabel.setForeground(Color.WHITE);
@@ -78,34 +68,17 @@ public class LoginView extends JFrame {
         gbc.gridy = 3;
         mainPanel.add(passLabel, gbc);
         
-        // Campo Senha
         senhaField = new JPasswordField(15);
         senhaField.setFont(new Font("Arial", Font.PLAIN, 14));
-        senhaField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(52, 73, 94)),
-            BorderFactory.createEmptyBorder(8, 8, 8, 8)
-        ));
         gbc.gridx = 1;
         mainPanel.add(senhaField, gbc);
         
-        // Botão Entrar
         entrarButton = new JButton("Entrar");
         entrarButton.setFont(new Font("Arial", Font.BOLD, 14));
         entrarButton.setBackground(new Color(46, 204, 113));
         entrarButton.setForeground(Color.WHITE);
         entrarButton.setFocusPainted(false);
-        entrarButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         entrarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        // Efeito hover
-        entrarButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                entrarButton.setBackground(new Color(39, 174, 96));
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                entrarButton.setBackground(new Color(46, 204, 113));
-            }
-        });
         
         gbc.gridx = 0;
         gbc.gridy = 4;
@@ -113,7 +86,6 @@ public class LoginView extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(entrarButton, gbc);
         
-        // Link Cadastrar
         cadastrarLink = new JLabel("<HTML><U>Ainda não possui conta? Cadastrar</U></HTML>");
         cadastrarLink.setFont(new Font("Arial", Font.PLAIN, 12));
         cadastrarLink.setForeground(new Color(52, 152, 219));
@@ -122,7 +94,6 @@ public class LoginView extends JFrame {
         gbc.insets = new Insets(20, 10, 10, 10);
         mainPanel.add(cadastrarLink, gbc);
         
-        // Ações dos botões
         entrarButton.addActionListener(e -> realizarLogin());
         cadastrarLink.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -130,32 +101,36 @@ public class LoginView extends JFrame {
             }
         });
         
-        // Atalho Enter
         getRootPane().setDefaultButton(entrarButton);
-        
         add(mainPanel);
         setVisible(true);
     }
     
     private void realizarLogin() {
-        String usuario = usuarioField.getText().trim();
+        String nome = usuarioField.getText().trim();
         String senha = new String(senhaField.getPassword());
         
-        if (usuario.isEmpty() || senha.isEmpty()) {
+        if (nome.isEmpty() || senha.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Preencha todos os campos!", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
         try {
-            Usuario user = UsuarioDAO.buscarPorNome(usuario);
-            if (user != null && user.getSenha().equals(senha)) {
+            Pessoa pessoa = PessoaDAO.buscarPorNome(nome);
+            if (pessoa != null && pessoa.getSenha().equals(senha)) {
                 JOptionPane.showMessageDialog(this, "✅ Login realizado com sucesso!");
-                new MenuUsuarioView(user);
-                dispose(); // Fecha a tela de login
+                
+                // POLIMORFISMO: decide qual tela abrir baseado no tipo
+                if (pessoa.getTipo().equals("BARBEIRO")) {
+                    new MenuBarbeiroView((Barbeiro) pessoa);
+                } else {
+                    new MenuUsuarioView((Usuario) pessoa);
+                }
+                dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "❌ Usuário ou senha inválidos!", "Erro", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Erro ao acessar dados: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -163,9 +138,5 @@ public class LoginView extends JFrame {
     private void abrirCadastro() {
         new CadastroView();
         dispose();
-    }
-    
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new LoginView());
     }
 }

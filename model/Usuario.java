@@ -1,24 +1,18 @@
 package model;
 
-public class Usuario {
-    private String nome;
-    private String senha;
-
-    public Usuario(String nome, String senha) {
-        this.nome = nome;
-        this.senha = senha;
+public class Usuario extends Pessoa {
+    
+    public Usuario(String nome, String cpf, String cep, String email, String telefone, String senha) {
+        super(nome, cpf, cep, email, telefone, senha);
     }
-
-    public String getNome() {
-        return nome;
+    
+    @Override
+    public String getTipo() {
+        return "USUARIO";
     }
-
-    public String getSenha() {
-        return senha;
-    }
-
+    
     @Override
     public String toString() {
-        return nome + ";" + senha;
+        return "USUARIO;" + super.toString();
     }
 }
