@@ -1,2 +1,2 @@
 BARBEIRO;admin;123
-CLIENTE;walisson;campos
+USUARIO;walisson;campos

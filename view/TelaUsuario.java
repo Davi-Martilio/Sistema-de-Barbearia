@@ -15,7 +15,7 @@ public class TelaUsuario extends JFrame {
         JPanel painel = new JPanel();
         painel.setLayout(new BoxLayout(painel, BoxLayout.Y_AXIS));
 
-        JLabel titulo = new JLabel("BARBEARIA XPTO");
+        JLabel titulo = new JLabel("BARBEARIA WD");
         titulo.setFont(new Font("Arial", Font.BOLD, 24));
         titulo.setAlignmentX(Component.CENTER_ALIGNMENT);
 

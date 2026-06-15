@@ -54,6 +54,7 @@ public class TelaLogin extends JFrame {
                     );
 
                 } else {
+                        System.out.println(pessoa.getClass().getName());
                     if (pessoa instanceof Barbeiro) {
 
                         new TelaBarbeiro(

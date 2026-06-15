@@ -8,6 +8,6 @@ public class Usuario extends Pessoa {
 
     @Override
     public String getTipo() {
-        return "CLIENTE";
+        return "USUARIO";
     }
 }
