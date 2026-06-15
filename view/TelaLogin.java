@@ -1,6 +1,8 @@
 package view;
 
 import dao.UsuarioDAO;
+import model.Barbeiro;
+import model.Pessoa;
 
 import javax.swing.*;
 import java.awt.*;
@@ -39,24 +41,33 @@ public class TelaLogin extends JFrame {
 
                 UsuarioDAO dao = new UsuarioDAO();
 
-                boolean valido = dao.validarLogin(
+                Pessoa pessoa = dao.realizarLogin(
                         txtUsuario.getText(),
                         new String(txtSenha.getPassword())
                 );
 
-                if (valido) {
-
-                    JOptionPane.showMessageDialog(
-                            null,
-                            "Login realizado com sucesso!"
-                    );
-
-                } else {
+                if (pessoa == null) {
 
                     JOptionPane.showMessageDialog(
                             null,
                             "Usuário ou senha inválidos!"
                     );
+
+                } else {
+                    if (pessoa instanceof Barbeiro) {
+
+                        new TelaBarbeiro(
+                                pessoa.getUsuario()
+                        ).setVisible(true);
+
+                        } else {
+
+                        new TelaUsuario(
+                                pessoa.getUsuario()
+                        ).setVisible(true);
+                        }
+
+                    dispose();
                 }
 
             } catch (Exception ex) {
@@ -79,7 +90,7 @@ public class TelaLogin extends JFrame {
 
         JLabel lblTexto =
                 new JLabel(
-                        "Ainda não tem uma conta?"
+                        "Ainda não possui conta?"
                 );
 
         JLabel lblCadastrar =
@@ -88,6 +99,7 @@ public class TelaLogin extends JFrame {
                 );
 
         lblCadastrar.setForeground(Color.BLUE);
+
         lblCadastrar.setCursor(
                 new Cursor(Cursor.HAND_CURSOR)
         );

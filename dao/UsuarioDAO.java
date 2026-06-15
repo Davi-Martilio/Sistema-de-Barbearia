@@ -1,6 +1,7 @@
 package dao;
 
-import model.Usuario;
+import model.*;
+
 import java.io.*;
 import java.util.ArrayList;
 
@@ -8,37 +9,113 @@ public class UsuarioDAO {
 
     private static final String ARQUIVO = "usuarios.txt";
 
-    public void salvarUsuario(Usuario usuario) throws IOException {
-        BufferedWriter bw = new BufferedWriter(new FileWriter(ARQUIVO, true));
-        bw.write(usuario.getNome() + ";" + usuario.getSenha());
+    public void salvarUsuario(Pessoa pessoa)
+            throws IOException {
+
+        BufferedWriter bw =
+                new BufferedWriter(
+                        new FileWriter(ARQUIVO, true));
+
+        bw.write(
+                pessoa.getTipo() + ";" +
+                pessoa.getUsuario() + ";" +
+                pessoa.getSenha()
+        );
+
         bw.newLine();
+
         bw.close();
     }
 
-    public ArrayList<Usuario> listarUsuarios() throws IOException {
-        ArrayList<Usuario> usuarios = new ArrayList<>();
-        File arquivo = new File(ARQUIVO);
+    public ArrayList<Pessoa> listarUsuarios()
+            throws IOException {
 
-        if (!arquivo.exists()) return usuarios;
+        ArrayList<Pessoa> lista =
+                new ArrayList<>();
 
-        BufferedReader br = new BufferedReader(new FileReader(arquivo));
+        File arquivo =
+                new File(ARQUIVO);
+
+        if (!arquivo.exists()) {
+
+            criarAdmin();
+
+            return listarUsuarios();
+        }
+
+        BufferedReader br =
+                new BufferedReader(
+                        new FileReader(arquivo));
+
         String linha;
 
         while ((linha = br.readLine()) != null) {
-            String[] dados = linha.split(";");
-            usuarios.add(new Usuario(dados[0], dados[1]));
+
+            String[] dados =
+                    linha.split(";");
+
+            String tipo = dados[0];
+            String usuario = dados[1];
+            String senha = dados[2];
+
+            if (tipo.equals("USUARIO")) {
+
+                lista.add(
+                        new Usuario(
+                                usuario,
+                                senha
+                        )
+                );
+
+            } else {
+
+                lista.add(
+                        new Barbeiro(
+                                usuario,
+                                senha
+                        )
+                );
+            }
         }
 
         br.close();
-        return usuarios;
+
+        return lista;
     }
 
-    public boolean validarLogin(String usuario, String senha) throws IOException {
-        for (Usuario u : listarUsuarios()) {
-            if (u.getNome().equals(usuario) && u.getSenha().equals(senha)) {
-                return true;
+    private void criarAdmin()
+            throws IOException {
+
+        BufferedWriter bw =
+                new BufferedWriter(
+                        new FileWriter(ARQUIVO));
+
+        bw.write(
+                "BARBEIRO;admin;123"
+        );
+
+        bw.newLine();
+
+        bw.close();
+    }
+
+    public Pessoa realizarLogin(
+            String usuario,
+            String senha)
+            throws IOException {
+
+        ArrayList<Pessoa> lista =
+                listarUsuarios();
+
+        for (Pessoa p : lista) {
+
+            if (p.getUsuario().equals(usuario)
+                    && p.getSenha().equals(senha)) {
+
+                return p;
             }
         }
-        return false;
+
+        return null;
     }
 }

@@ -1,15 +1,22 @@
 package model;
 
 public abstract class Pessoa {
-    protected String nome;
 
-    public Pessoa(String nome) {
-        this.nome = nome;
+    protected String usuario;
+    protected String senha;
+
+    public Pessoa(String usuario, String senha) {
+        this.usuario = usuario;
+        this.senha = senha;
     }
 
-    public String getNome() {
-        return nome;
+    public String getUsuario() {
+        return usuario;
     }
 
-    public abstract String exibirTipoUsuario();
+    public String getSenha() {
+        return senha;
+    }
+
+    public abstract String getTipo();
 }
