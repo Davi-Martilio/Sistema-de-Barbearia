@@ -1,121 +1,40 @@
 package dao;
 
-import model.*;
-
+import model.Usuario;
 import java.io.*;
-import java.util.ArrayList;
+import java.util.*;
 
 public class UsuarioDAO {
+    private static final String FILE_PATH = "dados/usuarios.txt";
 
-    private static final String ARQUIVO = "usuarios.txt";
-
-    public void salvarUsuario(Pessoa pessoa)
-            throws IOException {
-
-        BufferedWriter bw =
-                new BufferedWriter(
-                        new FileWriter(ARQUIVO, true));
-
-        bw.write(
-                pessoa.getTipo() + ";" +
-                pessoa.getUsuario() + ";" +
-                pessoa.getSenha()
-        );
-
-        bw.newLine();
-
-        bw.close();
+    public static void salvar(Usuario u) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
+            writer.write(u.toString());
+            writer.newLine();
+        }
     }
 
-    public ArrayList<Pessoa> listarUsuarios()
-            throws IOException {
+    public static List<Usuario> listarTodos() throws IOException {
+        List<Usuario> usuarios = new ArrayList<>();
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return usuarios;
 
-        ArrayList<Pessoa> lista =
-                new ArrayList<>();
-
-        File arquivo =
-                new File(ARQUIVO);
-
-        if (!arquivo.exists()) {
-
-            criarAdmin();
-
-            return listarUsuarios();
-        }
-
-        BufferedReader br =
-                new BufferedReader(
-                        new FileReader(arquivo));
-
-        String linha;
-
-        while ((linha = br.readLine()) != null) {
-
-            String[] dados =
-                    linha.split(";");
-
-            String tipo = dados[0];
-            String usuario = dados[1];
-            String senha = dados[2];
-
-            if (tipo.equals("USUARIO")) {
-
-                lista.add(
-                        new Usuario(
-                                usuario,
-                                senha
-                        )
-                );
-
-            } else {
-
-                lista.add(
-                        new Barbeiro(
-                                usuario,
-                                senha
-                        )
-                );
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String linha;
+            while ((linha = reader.readLine()) != null) {
+                String[] partes = linha.split(";");
+                if (partes.length >= 2) {
+                    usuarios.add(new Usuario(partes[0], partes[1]));
+                }
             }
         }
-
-        br.close();
-
-        return lista;
+        return usuarios;
     }
 
-    private void criarAdmin()
-            throws IOException {
-
-        BufferedWriter bw =
-                new BufferedWriter(
-                        new FileWriter(ARQUIVO));
-
-        bw.write(
-                "BARBEIRO;admin;123"
-        );
-
-        bw.newLine();
-
-        bw.close();
-    }
-
-    public Pessoa realizarLogin(
-            String usuario,
-            String senha)
-            throws IOException {
-
-        ArrayList<Pessoa> lista =
-                listarUsuarios();
-
-        for (Pessoa p : lista) {
-
-            if (p.getUsuario().equals(usuario)
-                    && p.getSenha().equals(senha)) {
-
-                return p;
-            }
-        }
-
-        return null;
+    public static Usuario buscarPorNome(String nome) throws IOException {
+        return listarTodos().stream()
+                .filter(u -> u.getNome().equalsIgnoreCase(nome))
+                .findFirst()
+                .orElse(null);
     }
 }

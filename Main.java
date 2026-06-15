@@ -1,12 +1,8 @@
-import view.TelaLogin;
+import view.LoginView;
+import javax.swing.SwingUtilities;
 
 public class Main {
-
     public static void main(String[] args) {
-
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            new TelaLogin().setVisible(true);
-        });
-
+        SwingUtilities.invokeLater(() -> new LoginView());
     }
 }

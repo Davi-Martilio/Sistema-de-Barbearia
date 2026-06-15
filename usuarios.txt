@@ -1,2 +1,0 @@
-BARBEIRO;admin;123
-USUARIO;walisson;campos

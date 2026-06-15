@@ -42,7 +42,7 @@ public class TelaBarbeiro extends JFrame {
 
         btnSair.addActionListener(e -> {
 
-            new TelaLogin().setVisible(true);
+            new LoginView().setVisible(true);
 
             dispose();
         });
